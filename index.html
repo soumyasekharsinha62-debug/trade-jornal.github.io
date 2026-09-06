@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Team Trading Journal</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body>
+  <main class="app-shell">
+    <section id="auth-view" class="auth-view">
+      <div class="auth-panel">
+        <div class="welcome-header">
+          <p class="eyebrow">Private Desk</p>
+          <span class="live-badge">v1.0 Live</span>
+        </div>
+        <h1>Team Trading Journal</h1>
+        <p class="welcome-copy">Log, sync, and analyze team executions in real-time.</p>
+        <form id="login-form" class="form-stack">
+          <label>
+            Email
+            <input id="email" name="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <span class="password-control">
+              <input id="password" name="password" type="password" autocomplete="current-password" required />
+              <button id="toggle-password" class="password-toggle" type="button" aria-label="Show password"
+                aria-pressed="false">Show</button>
+            </span>
+          </label>
+          <button class="signin-button" type="submit">Sign in</button>
+          <p id="auth-error" class="error-message" role="alert"></p>
+        </form>
+        <div class="trust-strip" aria-label="Security indicators">
+          <span>Firebase Auth Secured</span>
+          <span>Authorized Team Access Only</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="welcome-view" class="welcome-view hidden" aria-live="polite">
+      <div class="welcome-window">
+        <span class="welcome-kicker">Access Granted</span>
+        <h1 id="welcome-title">Welcome</h1>
+        <p id="welcome-message">Preparing your team trading desk.</p>
+        <div class="welcome-loader" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="journal-view" class="journal-view hidden">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Live team ledger</p>
+          <h1>Trading Journal</h1>
+        </div>
+        <div class="session-actions">
+          <div class="profile-chip" id="profile-chip">
+            <span class="profile-avatar" id="profile-avatar">--</span>
+            <span class="profile-name" id="profile-name">Trader</span>
+          </div>
+          <button id="logout-button" class="desktop-logout" type="button">Log out</button>
+          <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-label="Open profile menu"
+            aria-expanded="false" aria-controls="profile-sidebar">
+            <span class="sidebar-toggle-avatar" id="sidebar-toggle-avatar">--</span>
+            <span class="sidebar-toggle-bars" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+        </div>
+      </header>
+
+      <nav class="nav-tabs" aria-label="App sections">
+        <button class="nav-tab is-active" type="button" data-view="logger">Logger</button>
+        <button class="nav-tab" type="button" data-view="analytics">Analytics Lab</button>
+        <button class="nav-tab" type="button" data-view="profile">Profile &amp; Settings</button>
+      </nav>
+
+      <section id="view-logger" class="app-view">
+        <section class="metrics-grid" aria-label="Team metrics">
+          <article>
+            <span>Total P&L</span>
+            <strong id="total-pnl">$0.00</strong>
+          </article>
+          <article>
+            <span>Win Rate</span>
+            <strong id="win-rate">0%</strong>
+          </article>
+          <article>
+            <span>Profit Factor</span>
+            <strong id="profit-factor">0.00</strong>
+          </article>
+          <article>
+            <span>Trades</span>
+            <strong id="trade-count">0</strong>
+          </article>
+        </section>
+
+        <section class="workspace-grid">
+          <section class="table-panel">
+            <div class="table-header">
+              <h2>Team Trades</h2>
+              <div class="table-header-actions">
+                <button id="add-trade-button" class="add-trade-button" type="button" aria-haspopup="dialog"
+                  aria-expanded="false" aria-controls="trade-form-modal">+ Add Trade</button>
+                <span id="sync-status">Waiting for sync</span>
+              </div>
+            </div>
+            <div class="trades-filter-bar">
+              <input id="trades-search-input" type="search" placeholder="Search symbol, trader, strategy..." />
+              <select id="trades-direction-filter">
+                <option value="ALL">All Sides</option>
+                <option value="LONG">Long</option>
+                <option value="SHORT">Short</option>
+              </select>
+              <select id="trades-outcome-filter">
+                <option value="ALL">All Outcomes</option>
+                <option value="WIN">Wins</option>
+                <option value="LOSS">Losses</option>
+              </select>
+              <div class="trades-date-presets">
+                <button type="button" class="trades-date-preset" data-trades-range="week">This Week</button>
+                <button type="button" class="trades-date-preset" data-trades-range="month">This Month</button>
+                <button type="button" class="trades-date-preset" data-trades-range="custom">Custom Date</button>
+              </div>
+              <div class="trades-custom-range hidden" id="trades-custom-range">
+                <label class="trades-date-field">From
+                  <input id="trades-date-start" type="date" />
+                </label>
+                <label class="trades-date-field">To
+                  <input id="trades-date-end" type="date" />
+                </label>
+                <button type="button" id="trades-apply-custom-range">Apply</button>
+              </div>
+              <button id="trades-filter-reset" class="trades-filter-reset" type="button">Reset</button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Trader</th>
+                    <th>Side</th>
+                    <th>Entry</th>
+                    <th>Exit</th>
+                    <th>Lot Size</th>
+                    <th>R:R</th>
+                    <th>P&L</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="trades-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section id="view-analytics" class="app-view hidden">
+        <div class="filter-bar">
+          <button class="filter-pill is-active" type="button" data-range="week">This Week</button>
+          <button class="filter-pill" type="button" data-range="month">This Month</button>
+          <button class="filter-pill" type="button" data-range="ytd">YTD</button>
+          <button class="filter-pill" type="button" data-range="custom">Custom Range</button>
+          <div class="custom-range hidden" id="custom-range">
+            <label>Start<input type="date" id="range-start" /></label>
+            <label>End<input type="date" id="range-end" /></label>
+            <button type="button" id="apply-custom-range">Apply</button>
+          </div>
+        </div>
+
+        <div class="kpi-radial-row">
+          <article class="chart-card kpi-radial-card">
+            <h2>Profit Factor</h2>
+            <div class="radial-frame">
+              <canvas id="profit-factor-radial"></canvas>
+              <div class="radial-center">
+                <strong id="profit-factor-radial-value">0.00</strong>
+                <span id="profit-factor-radial-label">Needs Work</span>
+              </div>
+            </div>
+          </article>
+          <article class="chart-card kpi-radial-card">
+            <h2>Win Rate</h2>
+            <div class="radial-frame">
+              <canvas id="win-rate-radial"></canvas>
+              <div class="radial-center">
+                <strong id="win-rate-radial-value">0%</strong>
+                <span class="radial-sublabel">Of All Trades</span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="analytics-grid">
+          <article class="chart-card equity-card">
+            <h2>Equity Curve</h2>
+            <div class="chart-frame"><canvas id="equity-chart"></canvas></div>
+          </article>
+          <article class="chart-card">
+            <h2>Win / Loss</h2>
+            <div class="chart-frame chart-frame-square"><canvas id="winloss-chart"></canvas></div>
+          </article>
+          <article class="chart-card strategy-card">
+            <h2>Performance by Strategy</h2>
+            <div class="chart-frame"><canvas id="strategy-chart"></canvas></div>
+          </article>
+          <article class="chart-card heatmap-card">
+            <div class="heatmap-header">
+              <h2 id="heatmap-title">Heatmap Calendar</h2>
+              <div class="heatmap-nav">
+                <button type="button" id="heatmap-prev-month" class="heatmap-nav-button"
+                  aria-label="Previous month">&#8249;</button>
+                <button type="button" id="heatmap-next-month" class="heatmap-nav-button"
+                  aria-label="Next month">&#8250;</button>
+              </div>
+            </div>
+            <div class="heatmap-grid" id="heatmap-grid"></div>
+            <div class="heatmap-legend">
+              <span><i class="legend-swatch legend-win"></i>Win day</span>
+              <span><i class="legend-swatch legend-loss"></i>Loss day</span>
+              <span><i class="legend-swatch legend-neutral"></i>No trades</span>
+            </div>
+          </article>
+
+          <article class="chart-card trade-analysis-card">
+            <h2>Trade Analysis</h2>
+            <div class="trade-analysis-grid">
+              <div class="trade-stat stat-positive">
+                <span>Avg Win</span>
+                <strong id="avg-win-value">$0.00</strong>
+              </div>
+              <div class="trade-stat stat-negative">
+                <span>Avg Loss</span>
+                <strong id="avg-loss-value">$0.00</strong>
+              </div>
+              <div class="trade-stat stat-positive">
+                <span>Best Trade</span>
+                <strong id="best-trade-value">$0.00</strong>
+              </div>
+              <div class="trade-stat stat-negative">
+                <span>Worst Trade</span>
+                <strong id="worst-trade-value">$0.00</strong>
+              </div>
+            </div>
+            <div class="ratio-bar">
+              <div class="ratio-bar-win" id="ratio-bar-win" style="width: 50%;">$0.00</div>
+              <div class="ratio-bar-loss" id="ratio-bar-loss" style="width: 50%;">$0.00</div>
+            </div>
+          </article>
+
+          <article class="chart-card streaks-card">
+            <h2>Win / Loss Streaks</h2>
+            <div class="streaks-grid" id="streaks-grid"></div>
+          </article>
+
+          <article class="chart-card symbol-card">
+            <div class="symbol-card-header">
+              <h2>Performance by Symbol</h2>
+              <select id="symbol-asset-filter" class="chart-select">
+                <option value="ALL">All Assets</option>
+                <option value="STOCK_CRYPTO">Stocks / Crypto</option>
+                <option value="OPTIONS">Options</option>
+                <option value="FOREX">Forex</option>
+              </select>
+            </div>
+            <div class="chart-frame"><canvas id="symbol-chart"></canvas></div>
+          </article>
+
+          <article class="chart-card timeline-card">
+            <h2>Performance by Day</h2>
+            <div class="chart-frame"><canvas id="timeline-chart"></canvas></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-profile" class="app-view hidden">
+        <div class="id-card">
+          <div class="id-card-header">
+            <span class="profile-avatar large" id="profile-view-avatar">--</span>
+            <div class="id-card-identity">
+              <div class="id-card-name-row">
+                <p class="id-card-name" id="profile-view-name">Trader</p>
+                <button id="edit-profile-button" class="edit-name-button" type="button" aria-haspopup="dialog"
+                  aria-expanded="false" aria-controls="profile-edit-modal">Edit</button>
+              </div>
+              <p class="id-card-email" id="profile-view-email">—</p>
+            </div>
+          </div>
+
+          <div class="id-card-body">
+            <div class="id-card-row">
+              <span>Role</span>
+              <span class="neo-badge" id="profile-role-badge">Team Trader</span>
+            </div>
+            <div class="id-card-row">
+              <span>Lifetime Trades Logged</span>
+              <span class="neo-badge" id="profile-trade-count">0</span>
+            </div>
+          </div>
+
+          <button id="view-team-button" class="view-team-button" type="button" aria-haspopup="dialog"
+            aria-expanded="false" aria-controls="members-modal">View Team Members</button>
+
+          <p id="profile-status" class="profile-status" role="status"></p>
+
+          <div class="danger-zone">
+            <h3>Data Export</h3>
+            <button id="export-csv-button" class="export-button" type="button">Export Data to CSV</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+    <aside id="profile-sidebar" class="profile-sidebar" aria-hidden="true" aria-label="Profile menu">
+      <div class="profile-sidebar-header">
+        <span class="profile-avatar large" id="sidebar-avatar">--</span>
+        <div class="profile-sidebar-identity">
+          <p class="profile-sidebar-name" id="sidebar-profile-name">Trader</p>
+          <p class="profile-sidebar-email" id="sidebar-profile-email">—</p>
+        </div>
+        <button id="sidebar-close" class="sidebar-close" type="button" aria-label="Close profile menu">&times;</button>
+      </div>
+
+      <div class="profile-sidebar-body">
+        <p class="profile-sidebar-label">Navigate</p>
+        <button class="sidebar-nav-link is-active" type="button" data-view="logger">Logger</button>
+        <button class="sidebar-nav-link" type="button" data-view="analytics">Analytics Lab</button>
+        <button class="sidebar-nav-link" type="button" data-view="profile">Profile &amp; Settings</button>
+
+        <p class="profile-sidebar-label">Account</p>
+        <div class="profile-sidebar-row">
+          <span>Status</span>
+          <span class="neo-badge">Signed in</span>
+        </div>
+        <div class="profile-sidebar-row">
+          <span>Access</span>
+          <span class="neo-badge">Team desk</span>
+        </div>
+      </div>
+
+      <div class="profile-sidebar-footer">
+        <button id="sidebar-logout-button" type="button">Log out</button>
+      </div>
+    </aside>
+
+    <div id="day-trades-backdrop" class="day-trades-backdrop"></div>
+    <div id="day-trades-modal" class="day-trades-modal" role="dialog" aria-modal="true" aria-hidden="true"
+      aria-labelledby="day-trades-title">
+      <div class="day-trades-header">
+        <h3 id="day-trades-title">Trades</h3>
+        <button id="day-trades-close" class="sidebar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="day-trades-body" id="day-trades-body"></div>
+    </div>
+
+    <div id="trade-form-backdrop" class="trade-form-backdrop"></div>
+    <div id="trade-form-modal" class="trade-form-modal" role="dialog" aria-modal="true" aria-hidden="true"
+      aria-labelledby="trade-form-title">
+      <div class="trade-form-modal-header">
+        <h3 id="trade-form-title">New Trade</h3>
+        <button id="trade-form-close" class="sidebar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="trade-form-modal-body">
+        <form id="trade-form" class="trade-form">
+          <div class="two-column">
+            <label>Symbol<input name="symbol" required placeholder="BTCUSDT" /></label>
+            <label>Direction
+              <select name="direction" required>
+                <option value="LONG">LONG</option>
+                <option value="SHORT">SHORT</option>
+              </select>
+            </label>
+            <label>Entry Price<input name="entryPrice" type="number" step="any" required /></label>
+            <label>Exit Price<input name="exitPrice" type="number" step="any" required /></label>
+            <label>Lot Size<input name="lotSize" type="number" step="any" required /></label>
+            <label>Stop Loss<input name="stopLoss" type="number" step="any" required /></label>
+            <label>Take Profit<input name="takeProfit" type="number" step="any" /></label>
+            <label>Fees<input name="fees" type="number" step="any" value="0" /></label>
+          </div>
+          <label>Asset Class
+            <select name="assetClass" required>
+              <option value="STOCK_CRYPTO">Stocks / Crypto (1x)</option>
+              <option value="OPTIONS">Options (100x)</option>
+              <option value="FOREX">Forex (100,000x)</option>
+            </select>
+          </label>
+          <label>Strategy<input name="strategy" placeholder="Breakout, pullback..." /></label>
+          <label>Tags<input name="tags" placeholder="FOMO, Plan Followed" /></label>
+          <label>Notes<textarea name="notes" rows="4" placeholder="Post-trade review"></textarea></label>
+          <button type="submit" id="trade-form-submit">Add trade</button>
+          <p id="trade-error" class="error-message" role="alert"></p>
+        </form>
+      </div>
+    </div>
+
+    <div id="export-backdrop" class="trade-form-backdrop"></div>
+    <div id="export-modal" class="trade-form-modal" role="dialog" aria-modal="true" aria-hidden="true"
+      aria-labelledby="export-modal-title">
+      <div class="trade-form-modal-header">
+        <h3 id="export-modal-title">Export Data</h3>
+        <button id="export-modal-close" class="sidebar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="trade-form-modal-body">
+        <p class="profile-sidebar-label">Data to export</p>
+        <div class="export-pill-group">
+          <button type="button" class="filter-pill is-active" data-export-scope="mine">Only My Trades</button>
+          <button type="button" class="filter-pill" data-export-scope="all">All Team Trades</button>
+        </div>
+
+        <div class="export-range-section" id="export-range-section">
+          <p class="profile-sidebar-label">Date range</p>
+          <div class="export-pill-group">
+            <button type="button" class="filter-pill" data-export-range="day">Specific Day</button>
+            <button type="button" class="filter-pill" data-export-range="week">This Week</button>
+            <button type="button" class="filter-pill" data-export-range="month">This Month</button>
+            <button type="button" class="filter-pill" data-export-range="custom">Custom Range</button>
+          </div>
+
+          <div class="custom-range hidden" id="export-day-field">
+            <label>Date<input id="export-day-input" type="date" /></label>
+          </div>
+
+          <div class="custom-range hidden" id="export-custom-range">
+            <label>Start<input id="export-range-start" type="date" /></label>
+            <label>End<input id="export-range-end" type="date" /></label>
+          </div>
+        </div>
+
+        <p id="export-modal-error" class="error-message" role="alert"></p>
+        <button id="export-confirm-button" class="export-button" type="button">Export CSV</button>
+      </div>
+    </div>
+
+    <div id="profile-edit-backdrop" class="trade-form-backdrop"></div>
+    <div id="profile-edit-modal" class="trade-form-modal" role="dialog" aria-modal="true" aria-hidden="true"
+      aria-labelledby="profile-edit-title">
+      <div class="trade-form-modal-header">
+        <h3 id="profile-edit-title">Edit Profile</h3>
+        <button id="profile-edit-close" class="sidebar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="trade-form-modal-body">
+        <form id="profile-edit-form" class="trade-form">
+          <div class="avatar-upload">
+            <span class="profile-avatar large" id="profile-edit-avatar-preview">--</span>
+            <button id="profile-edit-change-photo" class="change-photo-button" type="button">Change Photo</button>
+            <input id="profile-edit-photo-input" class="hidden" type="file" accept="image/*" />
+          </div>
+          <label>Display Name<input id="profile-edit-name-input" name="displayName" type="text" maxlength="60"
+              required /></label>
+          <label>Role<input id="profile-edit-role-input" name="role" type="text" maxlength="40" required /></label>
+          <button type="submit">Save changes</button>
+          <p id="profile-edit-error" class="error-message" role="alert"></p>
+        </form>
+      </div>
+    </div>
+
+    <div id="members-backdrop" class="trade-form-backdrop"></div>
+    <div id="members-modal" class="trade-form-modal" role="dialog" aria-modal="true" aria-hidden="true"
+      aria-labelledby="members-modal-title">
+      <div class="trade-form-modal-header">
+        <h3 id="members-modal-title">Team Members</h3>
+        <button id="members-modal-close" class="sidebar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="trade-form-modal-body">
+        <div class="members-list" id="members-list"></div>
+      </div>
+    </div>
+
+    <div id="member-detail-backdrop" class="trade-form-backdrop"></div>
+    <div id="member-detail-modal" class="trade-form-modal" role="dialog" aria-modal="true" aria-hidden="true"
+      aria-labelledby="member-detail-title">
+      <div class="trade-form-modal-header">
+        <h3 id="member-detail-title">Member Profile</h3>
+        <button id="member-detail-close" class="sidebar-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="trade-form-modal-body">
+        <div class="id-card member-detail-card">
+          <div class="id-card-header">
+            <span class="profile-avatar large" id="member-detail-avatar">--</span>
+            <div class="id-card-identity">
+              <p class="id-card-name" id="member-detail-name">Trader</p>
+              <p class="id-card-email" id="member-detail-email">—</p>
+            </div>
+          </div>
+          <div class="id-card-body">
+            <div class="id-card-row">
+              <span>Role</span>
+              <span class="neo-badge" id="member-detail-role">Team Trader</span>
+            </div>
+            <div class="id-card-row">
+              <span>Lifetime Trades Logged</span>
+              <span class="neo-badge" id="member-detail-trade-count">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+
+</html>
