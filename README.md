@@ -1,0 +1,1 @@
+# trade-jornal.github.io
