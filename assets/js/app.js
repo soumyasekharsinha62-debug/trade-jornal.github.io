@@ -14,7 +14,10 @@ import {
   computeBestWorstTrade,
   computeWinLossStreakSequence,
   computeSymbolPerformance,
-  computeDailyTimeline
+  computeDailyTimeline,
+  computeNetPnL,
+  computePositionValue,
+  MAX_ACCOUNT_LIMIT
 } from "./metrics.js";
 
 const authView = document.querySelector("#auth-view");
@@ -45,6 +48,7 @@ const sidebarLogoutButton = document.querySelector("#sidebar-logout-button");
 const tradesBody = document.querySelector("#trades-body");
 const authError = document.querySelector("#auth-error");
 const tradeError = document.querySelector("#trade-error");
+const exposureErrorBadge = document.querySelector("#exposure-error-badge");
 const syncStatus = document.querySelector("#sync-status");
 const passwordInput = document.querySelector("#password");
 const togglePasswordButton = document.querySelector("#toggle-password");
@@ -57,7 +61,7 @@ const appViews = {
   profile: document.querySelector("#view-profile")
 };
 
-const filterPills = document.querySelectorAll(".filter-pill");
+const filterPills = document.querySelectorAll(".filter-bar .filter-pill");
 const customRangeContainer = document.querySelector("#custom-range");
 const rangeStartInput = document.querySelector("#range-start");
 const rangeEndInput = document.querySelector("#range-end");
@@ -224,6 +228,7 @@ function openTradeFormModal(trade = null) {
   tradeFormTitle.textContent = trade ? "Edit Trade" : "New Trade";
   tradeFormSubmitButton.textContent = trade ? "Update trade" : "Add trade";
   tradeError.textContent = "";
+  hideExposureError();
 
   if (trade) {
     tradeForm.elements.symbol.value = trade.symbol || "";
@@ -258,6 +263,7 @@ function closeTradeFormModal() {
   tradeFormModal.setAttribute("aria-hidden", "true");
   addTradeButton.setAttribute("aria-expanded", "false");
   editingTradeId = null;
+  hideExposureError();
 }
 
 addTradeButton.addEventListener("click", () => {
@@ -279,6 +285,7 @@ document.addEventListener("keydown", (event) => {
 tradeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   tradeError.textContent = "";
+  hideExposureError();
 
   if (!activeUser) return;
 
@@ -300,6 +307,21 @@ tradeForm.addEventListener("submit", async (event) => {
     notes: cleanText(formData.get("notes"))
   };
 
+  const projectedPnl = computeNetPnL(
+    tradeData.direction,
+    tradeData.entryPrice,
+    tradeData.exitPrice,
+    tradeData.lotSize,
+    tradeData.fees,
+    tradeData.assetClass
+  );
+  const positionValue = computePositionValue(tradeData.entryPrice, tradeData.lotSize, tradeData.assetClass);
+
+  if (Math.abs(projectedPnl) > MAX_ACCOUNT_LIMIT || positionValue > MAX_ACCOUNT_LIMIT) {
+    showExposureError();
+    return;
+  }
+
   try {
     if (editingTradeId) {
       const { userId, traderName, ...updateData } = tradeData;
@@ -316,6 +338,16 @@ tradeForm.addEventListener("submit", async (event) => {
     tradeError.textContent = error.message;
   }
 });
+
+function showExposureError() {
+  exposureErrorBadge.textContent = "Trade exposure exceeds $5,000 account max limit.";
+  exposureErrorBadge.classList.remove("hidden");
+}
+
+function hideExposureError() {
+  exposureErrorBadge.textContent = "";
+  exposureErrorBadge.classList.add("hidden");
+}
 
 tradesBody.addEventListener("click", async (event) => {
   const editButton = event.target.closest("[data-edit-trade]");
