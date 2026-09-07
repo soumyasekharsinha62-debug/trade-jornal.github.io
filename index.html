@@ -391,13 +391,14 @@
             <select name="assetClass" required>
               <option value="STOCK_CRYPTO">Stocks / Crypto (1x)</option>
               <option value="OPTIONS">Options (100x)</option>
-              <option value="FOREX">Forex (100,000x)</option>
+              <option value="FOREX">Forex (5,000x)</option>
             </select>
           </label>
           <label>Strategy<input name="strategy" placeholder="Breakout, pullback..." /></label>
           <label>Tags<input name="tags" placeholder="FOMO, Plan Followed" /></label>
           <label>Notes<textarea name="notes" rows="4" placeholder="Post-trade review"></textarea></label>
           <button type="submit" id="trade-form-submit">Add trade</button>
+          <p id="exposure-error-badge" class="exposure-error-badge hidden" role="alert"></p>
           <p id="trade-error" class="error-message" role="alert"></p>
         </form>
       </div>
