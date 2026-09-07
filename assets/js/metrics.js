@@ -4,11 +4,19 @@ const LOT_SIZE_MULTIPLIERS = {
   FOREX: 5000
 };
 
+export const MAX_ACCOUNT_LIMIT = 5000;
+
 export function computeNetPnL(direction, entry, exit, lotSize, fees = 0, assetClass = "STOCK_CRYPTO") {
   const multiplier = LOT_SIZE_MULTIPLIERS[assetClass] ?? 1;
   const units = lotSize * multiplier;
   const gross = direction === "SHORT" ? (entry - exit) * units : (exit - entry) * units;
   return gross - fees;
+}
+
+export function computePositionValue(entryPrice, lotSize, assetClass = "STOCK_CRYPTO") {
+  const multiplier = LOT_SIZE_MULTIPLIERS[assetClass] ?? 1;
+  const units = (lotSize || 0) * multiplier;
+  return Math.abs(entryPrice || 0) * units;
 }
 
 export function computeRiskReward(entry, exit, stopLoss) {
